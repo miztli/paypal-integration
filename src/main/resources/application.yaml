@@ -1,0 +1,6 @@
+paypal:
+  application:
+    client:
+      id:
+      secret:
+      bncode:
