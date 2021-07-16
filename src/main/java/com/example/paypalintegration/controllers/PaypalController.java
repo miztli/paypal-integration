@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping(value = "/paypal")
 public class PaypalController
@@ -16,7 +18,7 @@ public class PaypalController
     private PaypalService paypalService;
 
     @PostMapping(value = "/orders")
-    public void createOrder() {
+    public void createOrder() throws IOException {
         paypalService.createOrder(PaypalOrderOperation.CAPTURE);
     }
 }
