@@ -3,4 +3,6 @@ paypal:
     client:
       id:
       secret:
-      bncode:
+    bnCode:
+    authAssertion:
+    redirectionUrl:

@@ -17,52 +17,63 @@ public class PaypalConfig
         return new PayPalHttpClient(environment);
     }
 
+    @Bean
     @ConfigurationProperties(prefix = "paypal.application")
-    public class PaypalApplication {
-        private PaypalApplicationClient client;
+    public PaypalApplication paypalApplication() {
+        return new PaypalApplication();
+    }
 
+    public static class PaypalApplication {
+        private PaypalApplicationClient client;
+        private String bnCode;
+        private String authAssertion;
+        private String redirectionUrl;
         public PaypalApplicationClient getClient()
         {
             return client;
         }
-
         public void setClient(final PaypalApplicationClient client)
         {
             this.client = client;
         }
+        public void setBnCode(String bnCode) {
+            this.bnCode = bnCode;
+        }
+        public String getBnCode() {
+            return bnCode;
+        }
+        public void setAuthAssertion(String authAssertion) {
+            this.authAssertion = authAssertion;
+        }
+        public String getAuthAssertion() {
+            return authAssertion;
+        }
+        public void setRedirectionUrl(String redirectionUrl) {
+            this.redirectionUrl = redirectionUrl;
+        }
+        public String getRedirectionUrl() {
+            return redirectionUrl;
+        }
     }
 
-    public class PaypalApplicationClient {
+    public static class PaypalApplicationClient {
         private String id;
         private String secret;
-        private String bncode;
-
         public String getId()
         {
             return id;
         }
-
         public void setId(final String id)
         {
             this.id = id;
         }
-
         public String getSecret()
         {
             return secret;
         }
-
         public void setSecret(final String secret)
         {
             this.secret = secret;
-        }
-
-        public void setBncode(String bncode) {
-            this.bncode = bncode;
-        }
-
-        public String getBncode() {
-            return bncode;
         }
     }
 }

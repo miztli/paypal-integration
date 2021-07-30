@@ -1,5 +1,6 @@
 package com.example.paypalintegration.services.impl;
 
+import com.example.paypalintegration.config.PaypalConfig;
 import com.example.paypalintegration.services.PaypalOrderOperation;
 import com.example.paypalintegration.services.PaypalService;
 import com.paypal.core.PayPalHttpClient;
@@ -8,8 +9,12 @@ import com.paypal.orders.AmountWithBreakdown;
 import com.paypal.orders.ApplicationContext;
 import com.paypal.orders.Order;
 import com.paypal.orders.OrderRequest;
+import com.paypal.orders.OrdersAuthorizeRequest;
+import com.paypal.orders.OrdersCaptureRequest;
 import com.paypal.orders.OrdersCreateRequest;
 import com.paypal.orders.PurchaseUnitRequest;
+import com.paypal.payments.AuthorizationsCaptureRequest;
+import com.paypal.payments.Capture;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -22,31 +27,75 @@ public class PaypalOperationServiceImpl implements PaypalService
     @Resource
     private PayPalHttpClient payPalHttpClient;
 
+    @Resource
+    private PaypalConfig.PaypalApplication paypalApplication;
+
     @Override
-    public void createOrder(final PaypalOrderOperation operation) throws IOException {
-        final OrdersCreateRequest request = new OrdersCreateRequest();
-        request.prefer("return=representation");
-        request.payPalPartnerAttributionId("");
-        request.contentType("application/json");
-        request.header("PayPal-Auth-Assertion","");
-        request.requestBody(requestBody());
+    public void sale() throws IOException {
 
-        payPalHttpClient.execute(request);
-
-        /* FIX THIS
-        final HttpResponse<Order> response = Credentials.client.execute(request);
-
-        // If call returns body in response, you can get the de-serialized version by
-        // calling result() on the response
-        order = response.result();
-        System.out.println("Order ID: " + order.id());
-        order.links().forEach(link -> System.out.println(link.rel() + " => " + link.method() + ":" + link.href()));*/
     }
 
-    private OrderRequest requestBody() {
+    @Override
+    public HttpResponse<Order> createOrderWithAuthorizeIntent() throws IOException {
+        final OrdersCreateRequest request = createRequestOrder();
+        request.requestBody(requestBody(PaypalOrderOperation.AUTHORIZE));
+
+        return payPalHttpClient.execute(request);
+    }
+
+    @Override
+    public HttpResponse<Order> authorizeOrderCreatedWithAuthorizeIntent(final String orderId) throws IOException {
+       final OrdersAuthorizeRequest request = createAuthorizeRequest(orderId);
+
+        return payPalHttpClient.execute(request);
+    }
+
+    @Override
+    public HttpResponse<Capture> capturePaymentAuthorization(final String authorizationId) throws IOException {
+        final AuthorizationsCaptureRequest request = createAuthorizationsCaptureRequest(authorizationId);
+
+        return payPalHttpClient.execute(request);
+    }
+
+    private AuthorizationsCaptureRequest createAuthorizationsCaptureRequest(final String authorizationId) {
+        final AuthorizationsCaptureRequest request = new AuthorizationsCaptureRequest(authorizationId);
+        request.prefer("return=representation");
+        // ? request.payPalPartnerAttributionId(paypalApplication.getBnCode());
+        request.header("PayPal-Auth-Assertion", paypalApplication.getAuthAssertion());
+        request.header("PayPal-Partner-Attribution-Id", paypalApplication.getBnCode()); // is this needed for this call?
+        return request;
+    }
+
+    private OrdersAuthorizeRequest createAuthorizeRequest(final String orderId) {
+        final OrdersAuthorizeRequest request = new OrdersAuthorizeRequest(orderId);
+        request.prefer("return=representation");
+        // ? request.payPalPartnerAttributionId(paypalApplication.getBnCode());
+        request.contentType("application/json");
+        request.header("PayPal-Auth-Assertion", paypalApplication.getAuthAssertion());
+        request.header("PayPal-Partner-Attribution-Id", paypalApplication.getBnCode()); // is this needed for this call?
+        return request;
+    }
+
+    private OrdersCreateRequest createRequestOrder() {
+        final OrdersCreateRequest request = new OrdersCreateRequest();
+        request.prefer("return=representation");
+        request.payPalPartnerAttributionId(paypalApplication.getBnCode());
+        request.contentType("application/json");
+        request.header("PayPal-Auth-Assertion",paypalApplication.getAuthAssertion());
+        return request;
+    }
+
+    @Override
+    public HttpResponse<Order> capture(final String orderId) throws IOException {
+        final OrdersCaptureRequest request = new OrdersCaptureRequest(orderId);
+
+        return payPalHttpClient.execute(request);
+    }
+
+    private OrderRequest requestBody(final PaypalOrderOperation operation) {
         final OrderRequest request = new OrderRequest();
 
-        request.checkoutPaymentIntent("CAPTURE");
+        request.checkoutPaymentIntent(operation.getOperation());
         request.purchaseUnits(purchaseUnits());
         request.applicationContext(applicationContext());
 
@@ -58,7 +107,7 @@ public class PaypalOperationServiceImpl implements PaypalService
         context.brandName("Merchant BRAND");
         context.landingPage("LOGIN");
         context.userAction("PAY_NOW");
-        context.returnUrl("");
+        context.returnUrl(paypalApplication.getRedirectionUrl());
 
         return context;
     }
